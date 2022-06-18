@@ -27,7 +27,12 @@ namespace Furball.Vixie.Backends.Vulkan {
             public Queue Handle { get; }
             public QueueFamilyProperties FamilyProperties { get; }
 
-            public QueueInfo(int queueFamilyIndex, int queueIndex, Queue handle, QueueFamilyProperties familyProperties) {
+            public QueueInfo(
+                int queueFamilyIndex,
+                int queueIndex,
+                Queue handle,
+                QueueFamilyProperties familyProperties
+            ) {
                 this.QueueFamilyIndex = queueFamilyIndex;
                 this.QueueIndex       = queueIndex;
                 this.Handle           = handle;
@@ -37,13 +42,19 @@ namespace Furball.Vixie.Backends.Vulkan {
         }
 
         private sealed class QueuePool : IDisposable {
-            
+
             private sealed class QueueReference : QueueInfo, IDisposable {
                 #if DEBUG
                 private bool _released = false;
                 #endif
                 private readonly QueuePool _parent;
-                public QueueReference(QueuePool parent, int queueFamilyIndex, int queueIndex, Queue handle, QueueFamilyProperties familyProperties) : base(queueFamilyIndex, queueIndex, handle, familyProperties) {
+                public QueueReference(
+                    QueuePool parent,
+                    int queueFamilyIndex,
+                    int queueIndex,
+                    Queue handle,
+                    QueueFamilyProperties familyProperties
+                ) : base(queueFamilyIndex, queueIndex, handle, familyProperties) {
                     this._parent = parent;
                 }
 
@@ -58,7 +69,7 @@ namespace Furball.Vixie.Backends.Vulkan {
 #endif
                 }
             }
-            
+
             private readonly ReadOnlyMemory<QueueInfo> _queueInfos;
             private readonly Memory<int>               _usageCount;
 
@@ -87,8 +98,12 @@ namespace Furball.Vixie.Backends.Vulkan {
                         break;
                     }
                 }
-                
-                var v = new QueueReference(this, s[i].QueueFamilyIndex, s[i].QueueIndex, s[i].Handle, s[i].FamilyProperties);
+
+                var v = new QueueReference(this,
+                                           s[i].QueueFamilyIndex,
+                                           s[i].QueueIndex,
+                                           s[i].Handle,
+                                           s[i].FamilyProperties);
                 this._usageCount.Span[i]++;
                 return v;
             }
@@ -112,7 +127,11 @@ namespace Furball.Vixie.Backends.Vulkan {
                     return false;
                 }
 
-                best = new QueueReference(this, s1[iMax].QueueFamilyIndex, s1[iMax].QueueIndex, s1[iMax].Handle, s1[iMax].FamilyProperties);
+                best = new QueueReference(this,
+                                          s1[iMax].QueueFamilyIndex,
+                                          s1[iMax].QueueIndex,
+                                          s1[iMax].Handle,
+                                          s1[iMax].FamilyProperties);
                 s2[iMax]++;
                 return true;
             }
@@ -137,7 +156,7 @@ namespace Furball.Vixie.Backends.Vulkan {
                 }
                 return queueInfo;
             }
-            
+
             public void Dispose() {
                 var s = this._queueInfos.Span;
                 var s2 = this._usageCount.Span;
@@ -145,7 +164,8 @@ namespace Furball.Vixie.Backends.Vulkan {
                 for (var index = 0; index < s.Length; index++) {
                     s[index].Dispose();
                     if (s2[index] > 0) {
-                        Logger.Log($"Queue {s[index].Handle} still had open references. R={s2[index]}", LoggerLevelVulkan.InstanceWarning);
+                        Logger.Log($"Queue {s[index].Handle} still had open references. R={s2[index]}",
+                                   LoggerLevelVulkan.InstanceWarning);
                     }
                 }
             }
@@ -155,7 +175,10 @@ namespace Furball.Vixie.Backends.Vulkan {
             public IReadOnlyCollection<string> RequiredExtensions { get; }
             public IReadOnlyCollection<string> OptionalExtensions { get; }
 
-            public ExtensionSet(IReadOnlyCollection<string> requiredExtensions, IReadOnlyCollection<string> optionalExtensions) {
+            public ExtensionSet(
+                IReadOnlyCollection<string> requiredExtensions,
+                IReadOnlyCollection<string> optionalExtensions
+            ) {
                 this.RequiredExtensions = requiredExtensions;
                 this.OptionalExtensions = optionalExtensions;
             }
@@ -170,7 +193,14 @@ namespace Furball.Vixie.Backends.Vulkan {
 
             public PhysicalDeviceMemoryProperties MemoryProperties { get; }
 
-            public PhysicalDeviceInfo(PhysicalDevice handle, string name, PhysicalDeviceFeatures features, PhysicalDeviceProperties properties, ReadOnlyMemory<QueueInfo> queues, PhysicalDeviceMemoryProperties memoryProperties) {
+            public PhysicalDeviceInfo(
+                PhysicalDevice handle,
+                string name,
+                PhysicalDeviceFeatures features,
+                PhysicalDeviceProperties properties,
+                ReadOnlyMemory<QueueInfo> queues,
+                PhysicalDeviceMemoryProperties memoryProperties
+            ) {
                 this.Handle           = handle;
                 this.Name             = name;
                 this.Features         = features;
@@ -214,11 +244,19 @@ namespace Furball.Vixie.Backends.Vulkan {
             fixed (QueueFamilyProperties* pQueueFamilyProperties = queueFamilyProperties)
                 this._vk.GetPhysicalDeviceQueueFamilyProperties(handle, ref queueFamilyCount, pQueueFamilyProperties);
 
-            var queueInfos = queueFamilyProperties.SelectMany((x, i) => Enumerable.Range(0, (int)x.QueueCount).Select(j => new QueueInfo(i, j, default, x))).ToArray();
+            var queueInfos = queueFamilyProperties
+                .SelectMany((x, i) => Enumerable.Range(0, (int)x.QueueCount)
+                                .Select(j => new QueueInfo(i, j, default, x)))
+                .ToArray();
 
             var name = SilkMarshal.PtrToString((nint)properties.DeviceName);
-            
-            return new PhysicalDeviceInfo(handle, name!, features, properties, queueInfos.AsMemory().Slice(0, (int)queueFamilyCount), memoryProperties);
+
+            return new PhysicalDeviceInfo(handle,
+                                          name!,
+                                          features,
+                                          properties,
+                                          queueInfos.AsMemory().Slice(0, (int)queueFamilyCount),
+                                          memoryProperties);
         }
 
         private Instance                _instance;
@@ -231,7 +269,7 @@ namespace Furball.Vixie.Backends.Vulkan {
         private DebugUtilsMessengerEXT? _messenger = null;
         private QueuePool               _queuePool;
         private QueueInfo               _presentationQueueInfo;
-        
+
         // Extensions:
         private ExtDebugUtils  _extDebugUtils;
         private KhrSurface     _vkSurface;
@@ -244,7 +282,10 @@ namespace Furball.Vixie.Backends.Vulkan {
             var optionalExtensions = new List<string>();
 
             Debug.Assert(this._window.VkSurface is not null);
-            requiredExtensions.AddRange(SilkMarshal.PtrToStringArray((nint)this._window.VkSurface!.GetRequiredExtensions(out var windowExtensionCount), (int)windowExtensionCount));
+            requiredExtensions.AddRange(SilkMarshal.PtrToStringArray(
+                                            (nint)this._window.VkSurface!.GetRequiredExtensions(
+                                                out var windowExtensionCount),
+                                            (int)windowExtensionCount));
             requiredExtensions.Add(KhrSurface.ExtensionName);
 
             if (_debug) {
@@ -275,7 +316,8 @@ namespace Furball.Vixie.Backends.Vulkan {
             bool allRequiredPresent = true;
             foreach (var required in extensionSet.RequiredExtensions) {
                 if (!verifyExtension(required)) {
-                    Logger.Log("Required Extension not Present: \"" + required + "\"", LoggerLevelVulkan.InstanceWarning);
+                    Logger.Log("Required Extension not Present: \"" + required + "\"",
+                               LoggerLevelVulkan.InstanceWarning);
                     allRequiredPresent = false;
                 } else {
                     usedExtensions.Add(required);
@@ -305,7 +347,10 @@ namespace Furball.Vixie.Backends.Vulkan {
             // TODO: Allow non-conformant devices using new loader extension (2022)
 
             var extensionSet = GetInstanceExtensions();
-            if (!TryExtractUsedExtensions(extensionSet, this._vk.IsInstanceExtensionPresent, out var extensionCount, out var extensionMemory)) {
+            if (!TryExtractUsedExtensions(extensionSet,
+                                          this._vk.IsInstanceExtensionPresent,
+                                          out var extensionCount,
+                                          out var extensionMemory)) {
                 Logger.Log("Could not extract instance extensions", LoggerLevelVulkan.InstanceError);
                 instance = default;
                 return false;
@@ -325,7 +370,9 @@ namespace Furball.Vixie.Backends.Vulkan {
             };
 
             InstanceCreateInfo createInfo = new InstanceCreateInfo {
-                SType = StructureType.InstanceCreateInfo, PApplicationInfo = &appInfo, EnabledExtensionCount = (uint)extensionCount, PpEnabledExtensionNames = (byte**)(extensionMemory?.Handle ?? 0)
+                SType                   = StructureType.InstanceCreateInfo, PApplicationInfo = &appInfo,
+                EnabledExtensionCount   = (uint)extensionCount,
+                PpEnabledExtensionNames = (byte**)(extensionMemory?.Handle ?? 0)
             };
 
 
@@ -358,7 +405,8 @@ namespace Furball.Vixie.Backends.Vulkan {
                 .Where(x => {
                     foreach (var e in extensionSet.RequiredExtensions) {
                         if (!this._vk.IsDeviceExtensionPresent(x.Handle, e)) {
-                            Logger.Log($"Rejecting {x.Name} as it does not support required extension {e}", LoggerLevelVulkan.InstanceInfo);
+                            Logger.Log($"Rejecting {x.Name} as it does not support required extension {e}",
+                                       LoggerLevelVulkan.InstanceInfo);
                             return false;
                         }
                     }
@@ -366,18 +414,24 @@ namespace Furball.Vixie.Backends.Vulkan {
                 })
                 .Where(x => {
                     foreach (var v in x.Queues.Span) {
-                        this._vkSurface.GetPhysicalDeviceSurfaceSupport(x.Handle, (uint)v.QueueFamilyIndex, this._surface, out var supported);
+                        this._vkSurface.GetPhysicalDeviceSurfaceSupport(x.Handle,
+                                                                        (uint)v.QueueFamilyIndex,
+                                                                        this._surface,
+                                                                        out var supported);
                         if (supported) return true;
                     }
-                    Logger.Log($"Rejecting {x.Name} as it does not support presentation", LoggerLevelVulkan.InstanceInfo);
+                    Logger.Log($"Rejecting {x.Name} as it does not support presentation",
+                               LoggerLevelVulkan.InstanceInfo);
                     return false;
                 });
 
             PhysicalDeviceInfo? bestInfo = null;
             try {
                 var rated = infos.Select(x => (x, RateDeviceInfo(x)
-                                            // Each optional present extension is worth 100 for now
-                                            + (ulong)extensionSet.OptionalExtensions.Sum(e => this._vk.IsDeviceExtensionPresent(x.Handle, e) ? 100 : 0))).ToArray();
+                                                  // Each optional present extension is worth 100 for now
+                                                  + (ulong)extensionSet.OptionalExtensions.Sum(
+                                                      e => this._vk.IsDeviceExtensionPresent(x.Handle, e) ? 100 : 0)))
+                    .ToArray();
 
                 var maxV = ulong.MinValue;
                 foreach (var (x, rating) in rated) {
@@ -401,24 +455,36 @@ namespace Furball.Vixie.Backends.Vulkan {
             return true;
         }
 
-        private bool TryCreateLogicalDevice(ExtensionSet extensionSet, out Device device, out QueuePool? queuePool, out ReadOnlyMemory<QueueInfo> queueInfos) {
+        private bool TryCreateLogicalDevice(
+            ExtensionSet extensionSet,
+            out Device device,
+            out QueuePool? queuePool,
+            out ReadOnlyMemory<QueueInfo> queueInfos
+        ) {
 
             // TODO: Allocate some smart priority stuffs
             // I can't be bothered.... This is 30x 1.0f, I doubt there are any devices with that many queues in one family
             float* prio = stackalloc float[] {
-                1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f
+                1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f
             };
             var physicalQueues = this._physicalDeviceInfo.Queues.Span;
             var queueCreates = new DeviceQueueCreateInfo[physicalQueues.Length];
             int queueCreateCount = -1;
             foreach (QueueInfo q in physicalQueues) {
                 if (q.QueueFamilyIndex > queueCreateCount) queueCreateCount = q.QueueFamilyIndex;
-                queueCreates[q.QueueFamilyIndex] = new DeviceQueueCreateInfo(queueCount: q.FamilyProperties.QueueCount, queueFamilyIndex: (uint)q.QueueFamilyIndex, pQueuePriorities: prio);
+                queueCreates[q.QueueFamilyIndex] = new DeviceQueueCreateInfo(
+                    queueCount: q.FamilyProperties.QueueCount,
+                    queueFamilyIndex: (uint)q.QueueFamilyIndex,
+                    pQueuePriorities: prio);
             }
 
             var enabledFeature = new PhysicalDeviceFeatures() {};
 
-            if (!TryExtractUsedExtensions(extensionSet, e => _vk.IsDeviceExtensionPresent(this._physicalDeviceInfo.Handle, e), out var enabledExtensionCount, out var extensionMem)) {
+            if (!TryExtractUsedExtensions(extensionSet,
+                                          e => _vk.IsDeviceExtensionPresent(this._physicalDeviceInfo.Handle, e),
+                                          out var enabledExtensionCount,
+                                          out var extensionMem)) {
                 device     = default;
                 queuePool  = null;
                 queueInfos = default;
@@ -426,15 +492,28 @@ namespace Furball.Vixie.Backends.Vulkan {
             }
 
             fixed (DeviceQueueCreateInfo* pQueueCreateInfos = queueCreates)
-                this._vk.CreateDevice(this._physicalDeviceInfo.Handle, new DeviceCreateInfo(queueCreateInfoCount: (uint)(queueCreateCount + 1), pQueueCreateInfos: pQueueCreateInfos, enabledExtensionCount: (uint)enabledExtensionCount, ppEnabledExtensionNames: (byte**)extensionMem.Handle, pEnabledFeatures: &enabledFeature), null, out device);
+                this._vk.CreateDevice(this._physicalDeviceInfo.Handle,
+                                      new DeviceCreateInfo(queueCreateInfoCount: (uint)(queueCreateCount + 1),
+                                                           pQueueCreateInfos: pQueueCreateInfos,
+                                                           enabledExtensionCount: (uint)enabledExtensionCount,
+                                                           ppEnabledExtensionNames: (byte**)extensionMem.Handle,
+                                                           pEnabledFeatures: &enabledFeature),
+                                      null,
+                                      out device);
 
             var newQueueInfos = new QueueInfo[this._physicalDeviceInfo.Queues.Length];
 
             for (int i = 0; i < newQueueInfos.Length; i++) {
-                this._vk.GetDeviceQueue(device, (uint)physicalQueues[i].QueueFamilyIndex, (uint)physicalQueues[i].QueueIndex, out var queue);
-                newQueueInfos[i] = new QueueInfo(physicalQueues[i].QueueFamilyIndex, physicalQueues[i].QueueIndex, queue, physicalQueues[i].FamilyProperties);
+                this._vk.GetDeviceQueue(device,
+                                        (uint)physicalQueues[i].QueueFamilyIndex,
+                                        (uint)physicalQueues[i].QueueIndex,
+                                        out var queue);
+                newQueueInfos[i] = new QueueInfo(physicalQueues[i].QueueFamilyIndex,
+                                                 physicalQueues[i].QueueIndex,
+                                                 queue,
+                                                 physicalQueues[i].FamilyProperties);
             }
-            
+
             queueInfos = newQueueInfos;
             queuePool  = new QueuePool(queueInfos);
             return true;
@@ -482,44 +561,69 @@ namespace Furball.Vixie.Backends.Vulkan {
                 return;
             }
 
-            var physicalDeviceProperties = this._physicalDeviceInfo.Properties;// to access fixed-size buffers
-            Logger.Log($"Picked vulkan device {SilkMarshal.PtrToString((nint)physicalDeviceProperties.DeviceName)}", LoggerLevelVulkan.InstanceInfo);
+            var physicalDeviceProperties = this._physicalDeviceInfo.Properties; // to access fixed-size buffers
+            Logger.Log($"Picked vulkan device {SilkMarshal.PtrToString((nint)physicalDeviceProperties.DeviceName)}",
+                       LoggerLevelVulkan.InstanceInfo);
 
             if (this._vkToolingInfo is not null) {
                 uint toolCount = 0;
-                this._vkToolingInfo.GetPhysicalDeviceToolProperties(this._physicalDeviceInfo.Handle, ref toolCount, null);
+                this._vkToolingInfo.GetPhysicalDeviceToolProperties(this._physicalDeviceInfo.Handle,
+                                                                    ref toolCount,
+                                                                    null);
                 var toolingProperties = new PhysicalDeviceToolProperties[toolCount];
                 fixed (PhysicalDeviceToolProperties* pToolingProps = toolingProperties)
-                    this._vkToolingInfo.GetPhysicalDeviceToolProperties(this._physicalDeviceInfo.Handle, ref toolCount, pToolingProps);
+                    this._vkToolingInfo.GetPhysicalDeviceToolProperties(this._physicalDeviceInfo.Handle,
+                                                                        ref toolCount,
+                                                                        pToolingProps);
 
                 for (int i = 0; i < toolCount; i++) {
                     var tool = toolingProperties[i];
-                    Logger.Log($"Tool {SilkMarshal.PtrToString((nint)tool.Name)} {SilkMarshal.PtrToString((nint)tool.Version)} purposes: {tool.Purposes}\n" + $"\"{SilkMarshal.PtrToString((nint)tool.Description)}\"", LoggerLevelVulkan.InstanceInfo);
+                    Logger.Log(
+                        $"Tool {SilkMarshal.PtrToString((nint)tool.Name)} {SilkMarshal.PtrToString((nint)tool.Version)} purposes: {tool.Purposes}\n" +
+                        $"\"{SilkMarshal.PtrToString((nint)tool.Description)}\"",
+                        LoggerLevelVulkan.InstanceInfo);
                 }
             }
 
-            if (!TryCreateLogicalDevice(deviceExtensionSet, out this._device, out this._queuePool, out var queueInfos)) {
+            if (!TryCreateLogicalDevice(deviceExtensionSet,
+                                        out this._device,
+                                        out this._queuePool,
+                                        out var queueInfos)) {
                 Logger.Log("Failed to create logical device", LoggerLevelVulkan.InstanceFatal);
                 return;
             }
 
             // Copy, add final queue infos with handles
-            this._physicalDeviceInfo = new PhysicalDeviceInfo(this._physicalDeviceInfo.Handle, this._physicalDeviceInfo.Name, this._physicalDeviceInfo.Features, this._physicalDeviceInfo.Properties, queueInfos, this._physicalDeviceInfo.MemoryProperties);
+            this._physicalDeviceInfo = new PhysicalDeviceInfo(this._physicalDeviceInfo.Handle,
+                                                              this._physicalDeviceInfo.Name,
+                                                              this._physicalDeviceInfo.Features,
+                                                              this._physicalDeviceInfo.Properties,
+                                                              queueInfos,
+                                                              this._physicalDeviceInfo.MemoryProperties);
 
-            Logger.Log($"Created Physical Device {this._device} with associated queue pool. Using {queueInfos.Length} queues.", LoggerLevelVulkan.InstanceInfo);
-            
+            Logger.Log(
+                $"Created Physical Device {this._device} with associated queue pool. Using {queueInfos.Length} queues.",
+                LoggerLevelVulkan.InstanceInfo);
+
             if (!TryGetPresentationQueue(out var presQueue)) {
-                Logger.Log("Could not retrieve presentation queue. This should be prohibited by earlier code... Did you unplug your monitor?", LoggerLevelVulkan.InstanceFatal);
+                Logger.Log(
+                    "Could not retrieve presentation queue. This should be prohibited by earlier code... Did you unplug your monitor?",
+                    LoggerLevelVulkan.InstanceFatal);
                 return;
             }
 
             this._presentationQueueInfo = this._queuePool!.GetReferenceTo(presQueue!);
-            Logger.Log($"Picked Presentation Queue from queue family {presQueue!.QueueFamilyIndex} and registered with pool", LoggerLevelVulkan.InstanceInfo);
+            Logger.Log(
+                $"Picked Presentation Queue from queue family {presQueue!.QueueFamilyIndex} and registered with pool",
+                LoggerLevelVulkan.InstanceInfo);
         }
         private bool TryGetPresentationQueue(out QueueInfo? presentationQueueInfo) {
             var physicalQueues = this._physicalDeviceInfo.Queues.Span;
             foreach (var q in physicalQueues) {
-                this._vkSurface.GetPhysicalDeviceSurfaceSupport(this._physicalDeviceInfo.Handle, (uint)q.QueueFamilyIndex, this._surface, out var supported);
+                this._vkSurface.GetPhysicalDeviceSurfaceSupport(this._physicalDeviceInfo.Handle,
+                                                                (uint)q.QueueFamilyIndex,
+                                                                this._surface,
+                                                                out var supported);
                 if (supported) {
                     presentationQueueInfo = q;
                     return true;
@@ -533,12 +637,21 @@ namespace Furball.Vixie.Backends.Vulkan {
 
         private unsafe void CreateDebugMessenger() {
             DebugUtilsMessengerCreateInfoEXT createInfo = new() {
-                SType = StructureType.DebugUtilsMessengerCreateInfoExt, MessageSeverity = DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityVerboseBitExt | DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityInfoBitExt | DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityWarningBitExt | DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityErrorBitExt, MessageType = DebugUtilsMessageTypeFlagsEXT.DebugUtilsMessageTypeGeneralBitExt | DebugUtilsMessageTypeFlagsEXT.DebugUtilsMessageTypePerformanceBitExt | DebugUtilsMessageTypeFlagsEXT.DebugUtilsMessageTypeValidationBitExt, PfnUserCallback = _DebugCallback
+                SType = StructureType.DebugUtilsMessengerCreateInfoExt,
+                MessageSeverity = DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityVerboseBitExt |
+                                  DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityInfoBitExt    |
+                                  DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityWarningBitExt |
+                                  DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityErrorBitExt,
+                MessageType = DebugUtilsMessageTypeFlagsEXT.DebugUtilsMessageTypeGeneralBitExt     |
+                              DebugUtilsMessageTypeFlagsEXT.DebugUtilsMessageTypePerformanceBitExt |
+                              DebugUtilsMessageTypeFlagsEXT.DebugUtilsMessageTypeValidationBitExt,
+                PfnUserCallback = _DebugCallback
             };
 
             DebugUtilsMessengerEXT messenger;
 
-            Result result = this._extDebugUtils.CreateDebugUtilsMessenger(this._instance, &createInfo, null, &messenger);
+            Result result =
+                this._extDebugUtils.CreateDebugUtilsMessenger(this._instance, &createInfo, null, &messenger);
 
             if (result != Result.Success)
                 throw new Exception($"Creating debug messenger failed! err{result}");
@@ -546,13 +659,21 @@ namespace Furball.Vixie.Backends.Vulkan {
             this._messenger = messenger;
         }
 
-        private static unsafe uint DebugCallback(DebugUtilsMessageSeverityFlagsEXT severity, DebugUtilsMessageTypeFlagsEXT type, DebugUtilsMessengerCallbackDataEXT* callbackData, void* userData) {
+        private static unsafe uint DebugCallback(
+            DebugUtilsMessageSeverityFlagsEXT severity,
+            DebugUtilsMessageTypeFlagsEXT type,
+            DebugUtilsMessengerCallbackDataEXT* callbackData,
+            void* userData
+        ) {
             LoggerLevel? level = severity switch {
                 DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityVerboseBitExt => null,
-                DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityInfoBitExt    => LoggerLevelVulkan.InstanceCallbackInfo,
-                DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityWarningBitExt => LoggerLevelVulkan.InstanceCallbackWarning,
-                DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityErrorBitExt   => LoggerLevelVulkan.InstanceCallbackError,
-                _                                                                        => throw new ArgumentOutOfRangeException(nameof(severity), severity, null)
+                DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityInfoBitExt => LoggerLevelVulkan
+                    .InstanceCallbackInfo,
+                DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityWarningBitExt => LoggerLevelVulkan
+                    .InstanceCallbackWarning,
+                DebugUtilsMessageSeverityFlagsEXT.DebugUtilsMessageSeverityErrorBitExt => LoggerLevelVulkan
+                    .InstanceCallbackError,
+                _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null)
             };
 
             if (level is null) return 0;
@@ -565,10 +686,10 @@ namespace Furball.Vixie.Backends.Vulkan {
         #endregion
 
         public override unsafe void Cleanup() {
-            
+
             this._presentationQueueInfo.Dispose();
             this._queuePool.Dispose();
-            
+
             this._vk.DestroyDevice(this._device, null);
             if (this._messenger.HasValue)
                 this._extDebugUtils.DestroyDebugUtilsMessenger(this._instance, this._messenger.Value, null);
@@ -594,8 +715,10 @@ namespace Furball.Vixie.Backends.Vulkan {
         public override void SetFullScissorRect() {
             throw new NotImplementedException();
         }
-        public override TextureRenderTarget CreateRenderTarget(uint width, uint height) => throw new NotImplementedException();
-        public override Texture CreateTexture(byte[] imageData, bool qoi = false) => throw new NotImplementedException();
+        public override TextureRenderTarget CreateRenderTarget(uint width, uint height)
+            => throw new NotImplementedException();
+        public override Texture CreateTexture(byte[] imageData, bool qoi = false)
+            => throw new NotImplementedException();
         public override Texture CreateTexture(Stream stream) => throw new NotImplementedException();
         public override Texture CreateTexture(uint width, uint height) => throw new NotImplementedException();
         public override Texture CreateTexture(string filepath) => throw new NotImplementedException();
