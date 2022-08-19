@@ -4,7 +4,7 @@ using Furball.Vixie.Backends.Veldrid;
 using Furball.Vixie.TestApplication;
 using Silk.NET.Windowing;
 
-var options = WindowOptions.DefaultVulkan;
+var options = WindowOptions.Default;
 
 options.VSync = false;
 

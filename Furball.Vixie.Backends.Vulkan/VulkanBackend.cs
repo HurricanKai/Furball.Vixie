@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using Furball.Vixie.Backends.Shared;
 using Furball.Vixie.Backends.Shared.Backends;
 using Furball.Vixie.Backends.Shared.Renderers;
@@ -208,6 +207,10 @@ namespace Furball.Vixie.Backends.Vulkan {
                 this.Queues           = queues;
                 this.MemoryProperties = memoryProperties;
             }
+        }
+
+        private interface IVkRenderer {
+            
         }
 
         private static ulong RateDeviceInfo(PhysicalDeviceInfo info) {
@@ -616,7 +619,18 @@ namespace Furball.Vixie.Backends.Vulkan {
             Logger.Log(
                 $"Picked Presentation Queue from queue family {presQueue!.QueueFamilyIndex} and registered with pool",
                 LoggerLevelVulkan.InstanceInfo);
+
+            if (!TryCreateSwapchain(out this._swapchain)) {
+                Logger.Log(
+                    "Could not create swapchain",
+                    LoggerLevelVulkan.InstanceFatal);
+                return;
+            }
+            Logger.Log(
+                $"Created Swapchain",
+                LoggerLevelVulkan.InstanceInfo);
         }
+
         private bool TryGetPresentationQueue(out QueueInfo? presentationQueueInfo) {
             var physicalQueues = this._physicalDeviceInfo.Queues.Span;
             foreach (var q in physicalQueues) {
@@ -696,24 +710,27 @@ namespace Furball.Vixie.Backends.Vulkan {
             this._vkSurface.DestroySurface(this._instance, this._surface, null);
             this._vk.DestroyInstance(this._instance, null);
         }
+
+        private int _framebufferWidth;
+        private int _framebufferHeight;
+        
         public override void HandleWindowSizeChange(int width, int height) {
-            throw new NotImplementedException();
         }
         public override void HandleFramebufferResize(int width, int height) {
-            throw new NotImplementedException();
+            this._framebufferHeight = height;
+            this._framebufferWidth  = width;
         }
         public override IQuadRenderer CreateTextureRenderer() => throw new NotImplementedException();
         public override ILineRenderer CreateLineRenderer() => throw new NotImplementedException();
         public override int QueryMaxTextureUnits() => throw new NotImplementedException();
         public override void Clear() {
-            throw new NotImplementedException();
         }
         public override void TakeScreenshot() {
             throw new NotImplementedException();
         }
         public override Rectangle ScissorRect { get; set; }
         public override void SetFullScissorRect() {
-            throw new NotImplementedException();
+            
         }
         public override TextureRenderTarget CreateRenderTarget(uint width, uint height)
             => throw new NotImplementedException();
@@ -724,10 +741,10 @@ namespace Furball.Vixie.Backends.Vulkan {
         public override Texture CreateTexture(string filepath) => throw new NotImplementedException();
         public override Texture CreateWhitePixelTexture() => throw new NotImplementedException();
         public override void ImGuiUpdate(double deltaTime) {
-            throw new NotImplementedException();
+            
         }
         public override void ImGuiDraw(double deltaTime) {
-            throw new NotImplementedException();
+            
         }
     }
 }
